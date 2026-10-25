@@ -47,11 +47,17 @@ class UpgradeRepoFoss @Inject constructor(
         .flatMapLatest {
             fossCache.upgrade.flow
                 .map { data ->
-                    Info(
-                        isPro = Gates.IS_PRO,
-                        upgradedAt = data?.upgradedAt,
-                        upgradeReason = data?.reason,
-                    )
+                    if (data == null) {
+                        // No sponsor record: the default applies, which the open
+                        // Gates.IS_PRO gate drives to Pro in this build.
+                        Info()
+                    } else {
+                        Info(
+                            isPro = true,
+                            upgradedAt = data.upgradedAt,
+                            upgradeReason = data.reason,
+                        )
+                    }
                 }
                 // Same coroutine as the throw below, so the ordering is guaranteed. Only
                 // successfully mapped elements pass here — catch emissions go straight downstream

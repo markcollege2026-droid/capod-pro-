@@ -13,6 +13,12 @@ import java.time.Instant
  */
 class ProGatesTest : BaseTest() {
 
+    init {
+        // BaseTest closes the gates so the legacy test suite drives the upstream gated paths;
+        // this test is about the shipped (open) configuration, so re-open them.
+        Gates.setAll(true)
+    }
+
     private class FreeInfo : UpgradeRepo.Info {
         override val type: UpgradeRepo.Type = UpgradeRepo.Type.FOSS
         override val isPro: Boolean = false
@@ -52,5 +58,15 @@ class ProGatesTest : BaseTest() {
         repo.isPro() shouldBe true
         repo.isProSettled() shouldBe true
         repo.isProForUi() shouldBe true
+    }
+
+    @Test
+    fun `closing the gates restores the free entitlement checks`() = runTest {
+        Gates.setAll(false)
+        val repo = FreeRepo()
+        repo.isPro() shouldBe false
+        repo.isProForUi() shouldBe false
+        // Settled + error-free + no purchase is the one case isProSettled() denies.
+        repo.isProSettled() shouldBe false
     }
 }
