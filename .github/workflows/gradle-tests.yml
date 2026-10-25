@@ -30,6 +30,43 @@ jobs:
         id: tests
         run: ./gradlew testFossDebugUnitTest testGplayDebugUnitTest --continue --stacktrace --no-daemon
 
+      # The sandbox can't download Actions logs/artifacts, so surface failures as check-run
+      # annotations (readable through api.github.com) plus the job step summary.
+      - name: Annotate failing tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          failures = []
+          for path in sorted(glob.glob('app/build/test-results/**/*.xml', recursive=True)):
+              try:
+                  root = ET.parse(path).getroot()
+              except Exception:
+                  continue
+              suites = [root] if root.tag == 'testsuite' else root.findall('testsuite')
+              for suite in suites:
+                  for case in suite.findall('testcase'):
+                      name = f"{suite.get('name', '')} :: {case.get('name', '')}"
+                      for problem in list(case.findall('failure')) + list(case.findall('error')):
+                          message = (problem.get('message') or '').replace('\n', ' ').strip()
+                          failures.append(f"{name} -> {message[:600]}")
+
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary:
+              with open(summary, 'a', encoding='utf-8') as fh:
+                  fh.write(f"## Failing tests ({len(failures)})\n\n")
+                  for line in failures:
+                      fh.write(f"- {line}\n")
+
+          if failures:
+              text = f"FAILING TESTS ({len(failures)}):\n" + "\n".join(failures)
+              text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f"::error title=JUnit failures::{text[:60000]}")
+          PY
+
       - name: Upload JUnit + HTML reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
