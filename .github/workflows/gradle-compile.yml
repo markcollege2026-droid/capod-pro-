@@ -1,0 +1,33 @@
+name: Gradle compile (Pro gates)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/755a173a-capod-pro
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gradle-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile FOSS + GPlay debug
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup project and build environment
+        uses: ./.github/actions/common-setup
+
+      - name: Compile and assemble both debug flavors with Gradle
+        run: ./gradlew app:assembleFossDebug app:assembleGplayDebug --stacktrace --no-daemon
+
+      - name: Compile unit-test sources (no test execution)
+        run: ./gradlew :app:compileFossDebugUnitTestKotlin :app:compileGplayDebugUnitTestKotlin --stacktrace --no-daemon

@@ -43,6 +43,7 @@ import eu.darken.capod.common.settings.SettingsPreferenceItem
 import eu.darken.capod.common.settings.SettingsSection
 import eu.darken.capod.common.settings.SettingsSliderItem
 import eu.darken.capod.common.settings.SettingsSwitchItem
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.main.ui.components.icon
 import eu.darken.capod.main.ui.components.shortLabel
 import eu.darken.capod.main.ui.devicesettings.components.SettingsCompoundHeader
@@ -119,14 +120,14 @@ internal fun NoiseControlCard(
                 title = stringResource(R.string.device_settings_listening_mode_cycle_label),
                 subtitle = cycleSubtitle,
                 onClick = {
-                    if (isPro) {
+                    if (Gates.DEVICE_SETTINGS || isPro) {
                         onShowListeningModeCycleDialogChange(true)
                     } else {
                         onUpgrade()
                     }
                 },
-                enabled = if (isPro) enabled else true,
-                requiresUpgrade = !isPro,
+                enabled = if (Gates.DEVICE_SETTINGS || isPro) enabled else true,
+                requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
             )
             if (hasCustomLongPressStemAction) {
                 SettingsInfoBox(
@@ -150,8 +151,8 @@ internal fun NoiseControlCard(
                 subtitle = stringResource(R.string.device_settings_allow_off_description),
                 checked = device.allowOffOption?.enabled != false,
                 onCheckedChange = { onAllowOffOptionChange(it) },
-                enabled = if (isPro) enabled else true,
-                requiresUpgrade = !isPro,
+                enabled = if (Gates.DEVICE_SETTINGS || isPro) enabled else true,
+                requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
             )
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -394,7 +395,7 @@ private fun NoiseControlCardPreview() = PreviewWrapper {
 @Preview2
 @Composable
 private fun NoiseControlCardNonProPreview() = PreviewWrapper {
-    val state = previewFullState(isPro = false)
+    val state = previewFullState(isPro = true)
     val device = state.device!!
     NoiseControlCard(
         device = device,

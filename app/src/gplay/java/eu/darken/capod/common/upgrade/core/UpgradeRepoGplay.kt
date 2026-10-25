@@ -12,6 +12,7 @@ import eu.darken.capod.common.debug.logging.asLog
 import eu.darken.capod.common.debug.logging.log
 import eu.darken.capod.common.debug.logging.logTag
 import eu.darken.capod.common.flow.setupCommonEventHandlers
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.common.upgrade.core.billing.BillingData
 import eu.darken.capod.common.upgrade.core.billing.BillingManager
@@ -617,7 +618,7 @@ class UpgradeRepoGplay @Inject constructor(
         val hasAutoRenewingSubscription: Boolean
             get() = billingData?.purchases?.any { it.isAutoRenewing } == true
 
-        override val isPro: Boolean = upgrades.isNotEmpty() || gracePeriod
+        override val isPro: Boolean = upgrades.isNotEmpty() || gracePeriod || Gates.IS_PRO
 
         override val upgradedAt: Instant? = upgrades
             .maxByOrNull { it.purchase.purchaseTime }

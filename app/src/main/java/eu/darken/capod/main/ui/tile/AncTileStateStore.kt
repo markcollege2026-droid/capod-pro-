@@ -3,6 +3,7 @@ package eu.darken.capod.main.ui.tile
 import eu.darken.capod.common.bluetooth.BluetoothManager2
 import eu.darken.capod.common.coroutine.AppScope
 import eu.darken.capod.common.flow.combine
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.main.core.PermissionTool
 import eu.darken.capod.monitor.core.DeviceMonitor
@@ -42,7 +43,7 @@ class AncTileStateStore @Inject constructor(
     private val rawState: StateFlow<AncTileState> = combine(
         deviceMonitor.devices,
         profilesRepo.profiles,
-        upgradeRepo.upgradeInfo.map { it.isPro },
+        upgradeRepo.upgradeInfo.map { Gates.ANC_TILE || it.isPro },
         bluetoothManager.isBluetoothEnabled,
         permissionTool.missingPermissions,
     ) { devices, profiles, isPro, isBluetoothEnabled, missingPermissions ->

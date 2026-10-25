@@ -77,6 +77,7 @@ import eu.darken.capod.common.compose.Preview2
 import eu.darken.capod.common.compose.PreviewWrapper
 import eu.darken.capod.common.compose.preview.MockPodDataProvider
 import eu.darken.capod.common.compose.systemBarsAndCutoutInsets
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.pods.core.apple.PodModel
 import eu.darken.capod.profiles.core.DeviceProfile
 
@@ -349,7 +350,7 @@ fun WidgetConfigurationScreen(
         // Bottom bar
         Surface(tonalElevation = 3.dp) {
             Column(modifier = Modifier.windowInsetsPadding(systemBarsAndCutoutInsets.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))) {
-                if (!state.isPro) {
+                if (!Gates.WIDGET_CONFIGURATION && !state.isPro) {
                     Text(
                         text = stringResource(R.string.common_feature_requires_pro_msg),
                         style = MaterialTheme.typography.labelLarge,
@@ -372,10 +373,10 @@ fun WidgetConfigurationScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = onConfirm,
-                        enabled = if (state.isPro) state.canConfirm else true,
+                        enabled = if (Gates.WIDGET_CONFIGURATION || state.isPro) state.canConfirm else true,
                     ) {
                         Text(
-                            text = if (state.isPro) {
+                            text = if (Gates.WIDGET_CONFIGURATION || state.isPro) {
                                 stringResource(android.R.string.ok)
                             } else {
                                 stringResource(R.string.general_upgrade_action)
@@ -810,7 +811,7 @@ private fun WidgetConfigurationScreenNonProPreview() = PreviewWrapper {
         state = WidgetConfigurationViewModel.State(
             profiles = profiles,
             selectedProfile = profiles.first().id,
-            isPro = false,
+            isPro = true,
             theme = WidgetTheme.DEFAULT,
             activePreset = WidgetTheme.Preset.MATERIAL_YOU,
             isCustomMode = false,

@@ -15,7 +15,11 @@ interface UpgradeRepo {
     interface Info {
         val type: Type
 
-        val isPro: Boolean
+        /**
+         * Pro entitlement. Defaults to the open [Gates.IS_PRO] gate; both flavor implementations
+         * override it with the same open value so every consumer sees Pro.
+         */
+        val isPro: Boolean get() = Gates.IS_PRO
 
         /**
          * Whether this Info reflects a real entitlement lookup (or a definitive can't-reach-Play

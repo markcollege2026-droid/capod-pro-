@@ -3,6 +3,7 @@ package eu.darken.capod.common.compose.preview
 import android.content.Context
 import eu.darken.capod.R
 import eu.darken.capod.common.bluetooth.BleScanResult
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.monitor.core.PodDevice
 import eu.darken.capod.monitor.core.cache.CachedDeviceState
@@ -406,12 +407,12 @@ object MockPodDataProvider {
 
     // --- UpgradeInfo ---
 
-    fun fossInfo(isPro: Boolean = false): UpgradeRepo.Info = MockUpgradeInfo(
+    fun fossInfo(isPro: Boolean = Gates.IS_PRO): UpgradeRepo.Info = MockUpgradeInfo(
         type = UpgradeRepo.Type.FOSS,
         isPro = isPro,
     )
 
-    fun gplayInfo(isPro: Boolean = false): UpgradeRepo.Info = MockUpgradeInfo(
+    fun gplayInfo(isPro: Boolean = Gates.IS_PRO): UpgradeRepo.Info = MockUpgradeInfo(
         type = UpgradeRepo.Type.GPLAY,
         isPro = isPro,
     )

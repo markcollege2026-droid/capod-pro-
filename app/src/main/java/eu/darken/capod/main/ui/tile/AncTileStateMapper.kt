@@ -2,6 +2,7 @@ package eu.darken.capod.main.ui.tile
 
 import eu.darken.capod.common.bluetooth.BluetoothAddress
 import eu.darken.capod.common.permissions.Permission
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.monitor.core.PodDevice
 import eu.darken.capod.monitor.core.visibleAncModes
 import eu.darken.capod.pods.core.apple.aap.protocol.AapSetting
@@ -23,7 +24,7 @@ object AncTileStateMapper {
         isBluetoothEnabled: Boolean,
         missingPermissions: Set<Permission>,
     ): AncTileState {
-        if (!isPro) return AncTileState.NotPro
+        if (!Gates.ANC_TILE && !isPro) return AncTileState.NotPro
         if (missingPermissions.any { it.isTileBlocking }) return AncTileState.PermissionRequired
         if (!isBluetoothEnabled) return AncTileState.BluetoothOff
         if (device == null) return AncTileState.NoDevice

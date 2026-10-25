@@ -7,6 +7,7 @@ import eu.darken.capod.common.debug.logging.asLog
 import eu.darken.capod.common.debug.logging.log
 import eu.darken.capod.common.debug.logging.logTag
 import eu.darken.capod.common.flow.setupCommonEventHandlers
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -46,15 +47,11 @@ class UpgradeRepoFoss @Inject constructor(
         .flatMapLatest {
             fossCache.upgrade.flow
                 .map { data ->
-                    if (data == null) {
-                        Info()
-                    } else {
-                        Info(
-                            isPro = true,
-                            upgradedAt = data.upgradedAt,
-                            upgradeReason = data.reason,
-                        )
-                    }
+                    Info(
+                        isPro = Gates.IS_PRO,
+                        upgradedAt = data?.upgradedAt,
+                        upgradeReason = data?.reason,
+                    )
                 }
                 // Same coroutine as the throw below, so the ordering is guaranteed. Only
                 // successfully mapped elements pass here — catch emissions go straight downstream
@@ -130,7 +127,7 @@ class UpgradeRepoFoss @Inject constructor(
     }
 
     data class Info(
-        override val isPro: Boolean = false,
+        override val isPro: Boolean = Gates.IS_PRO,
         override val upgradedAt: Instant? = null,
         val upgradeReason: FossUpgrade.Reason? = null,
         override val error: Throwable? = null,

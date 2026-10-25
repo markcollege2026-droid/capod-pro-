@@ -30,6 +30,7 @@ import eu.darken.capod.common.settings.SettingsBaseItem
 import eu.darken.capod.common.settings.SettingsSection
 import eu.darken.capod.common.settings.SettingsSliderItem
 import eu.darken.capod.common.settings.SettingsSwitchItem
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.main.ui.devicesettings.dialogs.ChargedSlotScopeDialog
 import eu.darken.capod.main.ui.devicesettings.previewFullState
 import eu.darken.capod.monitor.core.PodDevice
@@ -117,7 +118,7 @@ internal fun BatteryCard(
                 subtitle = stringResource(R.string.settings_charged_notification_description),
                 checked = reactions.notifyWhenCharged,
                 onCheckedChange = onNotifyWhenChargedChange,
-                requiresUpgrade = !isPro,
+                requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
             )
             if (reactions.notifyWhenCharged) {
                 var thresholdValue by remember(reactions.chargedThreshold) {
@@ -151,7 +152,7 @@ internal fun BatteryCard(
                     subtitle = stringResource(R.string.settings_caselow_reminder_description),
                     checked = reactions.notifyWhenCaseLow,
                     onCheckedChange = onNotifyWhenCaseLowChange,
-                    requiresUpgrade = !isPro,
+                    requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
                 )
                 if (reactions.notifyWhenCaseLow) {
                     var caseLowValue by remember(reactions.caseLowThreshold) {
@@ -231,7 +232,7 @@ private fun BatteryCardDisabledPreview() = PreviewWrapper {
     BatteryCard(
         device = device,
         features = PodModel.Features(hasDynamicEndOfCharge = true, hasCase = true),
-        isPro = false,
+        isPro = true,
         chargeCapControlEnabled = false,
         estimateEnabled = false,
     )

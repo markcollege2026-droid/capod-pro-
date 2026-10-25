@@ -18,6 +18,7 @@ import eu.darken.capod.common.navigation.Nav
 import eu.darken.capod.common.permissions.Permission
 import eu.darken.capod.common.review.ReviewTool
 import eu.darken.capod.common.uix.ViewModel4
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.main.core.GeneralSettings
 import eu.darken.capod.main.core.MonitorMode
@@ -305,7 +306,8 @@ class OverviewViewModel @Inject constructor(
          */
         val visibleProfiledDevices: List<PodDevice>
             get() {
-                val hardLocked = upgradeInfo.error == null && upgradeInfo.isSettled && !upgradeInfo.isPro
+                val hardLocked = !Gates.DEVICE_PROFILES &&
+                    upgradeInfo.error == null && upgradeInfo.isSettled && !upgradeInfo.isPro
                 if (!hardLocked) return profiledDevices
                 val allowedProfileIds = profiledDevices.map { it.profileId }
                     .distinct()

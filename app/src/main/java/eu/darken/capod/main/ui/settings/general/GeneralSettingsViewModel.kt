@@ -11,6 +11,7 @@ import eu.darken.capod.common.theming.ThemeMode
 import eu.darken.capod.common.theming.ThemeState
 import eu.darken.capod.common.theming.ThemeStyle
 import eu.darken.capod.common.uix.ViewModel4
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.common.upgrade.isProForUi
 import eu.darken.capod.main.core.GeneralSettings
@@ -48,7 +49,7 @@ class GeneralSettingsViewModel @Inject constructor(
     // Hard-locked = settled, error-free and no entitlement. Anything else (unsettled seed, error)
     // keeps the pro presentation, so the cold-start race can't route a paying user to upgrade.
     private val isUpgradeLocked = upgradeRepo.upgradeInfo
-        .map { it.error == null && it.isSettled && !it.isPro }
+        .map { !Gates.THEME_SETTINGS && it.error == null && it.isSettled && !it.isPro }
         .asLiveState()
 
     val state = combine(
@@ -120,9 +121,11 @@ class GeneralSettingsViewModel @Inject constructor(
         generalSettings.hideUnmatchedDevices.valueBlocking = enabled
     }
 
+    private suspend fun proUnlocked(): Boolean = Gates.THEME_SETTINGS || upgradeRepo.isProForUi()
+
     fun setThemeMode(mode: ThemeMode) = launch {
         log(TAG, INFO) { "setThemeMode($mode)" }
-        if (upgradeRepo.isProForUi()) {
+        if (proUnlocked()) {
             generalSettings.themeMode.valueBlocking = mode
         } else {
             navTo(Nav.Main.Upgrade())
@@ -131,7 +134,7 @@ class GeneralSettingsViewModel @Inject constructor(
 
     fun setThemeStyle(style: ThemeStyle) = launch {
         log(TAG, INFO) { "setThemeStyle($style)" }
-        if (upgradeRepo.isProForUi()) {
+        if (proUnlocked()) {
             generalSettings.themeStyle.valueBlocking = style
         } else {
             navTo(Nav.Main.Upgrade())
@@ -140,7 +143,7 @@ class GeneralSettingsViewModel @Inject constructor(
 
     fun setThemeColor(color: ThemeColor) = launch {
         log(TAG, INFO) { "setThemeColor($color)" }
-        if (upgradeRepo.isProForUi()) {
+        if (proUnlocked()) {
             generalSettings.themeColor.valueBlocking = color
         } else {
             navTo(Nav.Main.Upgrade())

@@ -6,6 +6,7 @@ import eu.darken.capod.common.coroutine.DispatcherProvider
 import eu.darken.capod.common.debug.logging.logTag
 
 import eu.darken.capod.common.uix.ViewModel4
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -25,7 +26,7 @@ class SettingsViewModel @Inject constructor(
     val state = upgradeRepo.upgradeInfo
         .map {
             State(
-                isPro = it.isPro,
+                isPro = Gates.STATUS_SCREEN || it.isPro,
                 // Only the FOSS flavor has a sponsor flow (its upgrade site IS the sponsor page),
                 // on GPlay the entitlement is bought in the app and the heart icon stays hidden.
                 sponsorUrl = when (it.type) {

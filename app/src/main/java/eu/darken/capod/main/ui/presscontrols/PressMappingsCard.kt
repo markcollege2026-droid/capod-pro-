@@ -39,6 +39,7 @@ import eu.darken.capod.common.settings.InfoBoxType
 import eu.darken.capod.common.settings.SettingsInfoBox
 import eu.darken.capod.common.settings.SettingsSection
 import eu.darken.capod.common.settings.UpgradeBadge
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.reaction.core.stem.StemAction
 import eu.darken.capod.reaction.core.stem.StemActionsConfig
 
@@ -139,7 +140,7 @@ private fun MappingsCardHeader(isPro: Boolean) {
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(end = 8.dp),
         )
-        if (!isPro) {
+        if (!Gates.PRESS_CONTROLS && !isPro) {
             UpgradeBadge()
         }
     }
@@ -312,7 +313,7 @@ private fun PressMappingsCardProPreview() = PreviewWrapper {
 private fun PressMappingsCardNonProPreview() = PreviewWrapper {
     PressMappingsCard(
         stemActions = StemActionsConfig(),
-        isPro = false,
+        isPro = true,
         supportsAncCycle = true,
         supportsAncToggle = true,
     )
