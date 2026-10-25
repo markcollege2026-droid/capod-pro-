@@ -1,0 +1,38 @@
+name: Gradle unit tests (Pro gates)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gradle-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Unit tests (FOSS + GPlay)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup project and build environment
+        uses: ./.github/actions/common-setup
+
+      - name: Run unit tests for both flavors
+        id: tests
+        run: ./gradlew testFossDebugUnitTest testGplayDebugUnitTest --continue --stacktrace --no-daemon
+
+      - name: Upload JUnit + HTML reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: unit-test-results
+          path: |
+            app/build/test-results/**/*.xml
+            app/build/reports/tests/**
+          if-no-files-found: ignore
