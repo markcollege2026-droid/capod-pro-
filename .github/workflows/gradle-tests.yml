@@ -2,12 +2,18 @@ name: Gradle unit tests (Pro gates)
 
 on:
   workflow_dispatch:
+    inputs:
+      report_run_id:
+        description: 'Optional: annotate the unit-test-results artifact from this run ID instead of executing tests'
+        required: false
+        default: ''
   push:
     branches:
       - arena/755a173a-capod-pro
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: gradle-tests-${{ github.ref }}
@@ -27,8 +33,17 @@ jobs:
         uses: ./.github/actions/common-setup
 
       - name: Run unit tests for both flavors
+        if: inputs.report_run_id == ''
         id: tests
         run: ./gradlew testFossDebugUnitTest testGplayDebugUnitTest --continue --stacktrace --no-daemon
+
+      - name: Reuse reports from an earlier run
+        if: inputs.report_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ inputs.report_run_id }}" -n unit-test-results -D previous-results
+          find previous-results -name '*.xml' | head -20
 
       # The sandbox can't download Actions logs/artifacts, so surface failures as check-run
       # annotations (readable through api.github.com) plus the job step summary.
@@ -40,19 +55,24 @@ jobs:
           import os
           import xml.etree.ElementTree as ET
 
+          patterns = [
+              'app/build/test-results/**/*.xml',
+              'previous-results/**/*.xml',
+          ]
           failures = []
-          for path in sorted(glob.glob('app/build/test-results/**/*.xml', recursive=True)):
-              try:
-                  root = ET.parse(path).getroot()
-              except Exception:
-                  continue
-              suites = [root] if root.tag == 'testsuite' else root.findall('testsuite')
-              for suite in suites:
-                  for case in suite.findall('testcase'):
-                      name = f"{suite.get('name', '')} :: {case.get('name', '')}"
-                      for problem in list(case.findall('failure')) + list(case.findall('error')):
-                          message = (problem.get('message') or '').replace('\n', ' ').strip()
-                          failures.append(f"{name} -> {message[:600]}")
+          for pattern in patterns:
+              for path in sorted(glob.glob(pattern, recursive=True)):
+                  try:
+                      root = ET.parse(path).getroot()
+                  except Exception:
+                      continue
+                  suites = [root] if root.tag == 'testsuite' else root.findall('testsuite')
+                  for suite in suites:
+                      for case in suite.findall('testcase'):
+                          name = f"{suite.get('name', '')} | {case.get('name', '')}"
+                          for problem in list(case.findall('failure')) + list(case.findall('error')):
+                              message = (problem.get('message') or '').replace('\n', ' ').strip()
+                              failures.append(f"{name} -> {message[:250]}")
 
           summary = os.environ.get('GITHUB_STEP_SUMMARY')
           if summary:
@@ -61,14 +81,33 @@ jobs:
                   for line in failures:
                       fh.write(f"- {line}\n")
 
+          def emit(title, body):
+              payload = body.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f"::error title={title}::{payload}")
+
           if failures:
-              text = f"FAILING TESTS ({len(failures)}):\n" + "\n".join(failures)
-              text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              print(f"::error title=JUnit failures::{text[:60000]}")
+              classes = sorted({line.split(' | ')[0] for line in failures})
+              emit('JUnit failing classes', f"FAILING CLASSES ({len(classes)}):\n" + "\n".join(classes))
+
+              lines = [f"{i + 1}. {line}" for i, line in enumerate(failures)]
+              chunks, current = [], ''
+              for line in lines:
+                  if current and len(current) + len(line) + 1 > 3600:
+                      chunks.append(current)
+                      current = line
+                  else:
+                      current = f"{current}\n{line}".strip()
+              if current:
+                  chunks.append(current)
+              for index, chunk in enumerate(chunks, 1):
+                  emit(
+                      f'JUnit failures {index}-{len(chunks)}',
+                      f"FAILING TESTS {index}/{len(chunks)} (total {len(failures)}):\n{chunk}",
+                  )
           PY
 
       - name: Upload JUnit + HTML reports
-        if: always()
+        if: always() && inputs.report_run_id == ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: unit-test-results
