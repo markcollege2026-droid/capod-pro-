@@ -2,6 +2,9 @@ name: Gradle unit tests (Pro gates)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - arena/755a173a-capod-pro
 
 permissions:
   contents: read
