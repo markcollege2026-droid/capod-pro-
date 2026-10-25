@@ -2,11 +2,6 @@ name: Gradle unit tests (Pro gates)
 
 on:
   workflow_dispatch:
-    inputs:
-      report_run_id:
-        description: 'Optional: annotate the unit-test-results artifact from this run ID instead of executing tests'
-        required: false
-        default: ''
   push:
     branches:
       - arena/755a173a-capod-pro
@@ -32,17 +27,34 @@ jobs:
       - name: Setup project and build environment
         uses: ./.github/actions/common-setup
 
+      # A commit message containing [annotate-only:<run-id>] reuses that run's artifact.
+      # This is a fast triage mode for environments that cannot download Actions logs.
+      - name: Determine run mode
+        id: mode
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          RUN_ID=$(printf '%s' "$COMMIT_MSG" | grep -oE '\[annotate-only:[0-9]+\]' | grep -oE '[0-9]+' | head -1 || true)
+          if [ -n "$RUN_ID" ]; then
+            echo "reuse=true" >> "$GITHUB_OUTPUT"
+            echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+            echo "Reusing artifact from run $RUN_ID"
+          else
+            echo "reuse=false" >> "$GITHUB_OUTPUT"
+            echo "Running the full unit test suites"
+          fi
+
       - name: Run unit tests for both flavors
-        if: inputs.report_run_id == ''
+        if: steps.mode.outputs.reuse != 'true'
         id: tests
         run: ./gradlew testFossDebugUnitTest testGplayDebugUnitTest --continue --stacktrace --no-daemon
 
       - name: Reuse reports from an earlier run
-        if: inputs.report_run_id != ''
+        if: steps.mode.outputs.reuse == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download "${{ inputs.report_run_id }}" -n unit-test-results -D previous-results
+          gh run download "${{ steps.mode.outputs.run_id }}" -n unit-test-results -D previous-results
           find previous-results -name '*.xml' | head -20
 
       # The sandbox can't download Actions logs/artifacts, so surface failures as check-run
@@ -60,6 +72,7 @@ jobs:
               'previous-results/**/*.xml',
           ]
           failures = []
+          seen = set()
           for pattern in patterns:
               for path in sorted(glob.glob(pattern, recursive=True)):
                   try:
@@ -72,7 +85,12 @@ jobs:
                           name = f"{suite.get('name', '')} | {case.get('name', '')}"
                           for problem in list(case.findall('failure')) + list(case.findall('error')):
                               message = (problem.get('message') or '').replace('\n', ' ').strip()
-                              failures.append(f"{name} -> {message[:250]}")
+                              entry = f"{name} -> {message[:250]}"
+                              key = (suite.get('name', ''), case.get('name', ''), message[:80])
+                              if key in seen:
+                                  continue
+                              seen.add(key)
+                              failures.append(entry)
 
           summary = os.environ.get('GITHUB_STEP_SUMMARY')
           if summary:
@@ -107,7 +125,7 @@ jobs:
           PY
 
       - name: Upload JUnit + HTML reports
-        if: always() && inputs.report_run_id == ''
+        if: always() && steps.mode.outputs.reuse != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: unit-test-results
