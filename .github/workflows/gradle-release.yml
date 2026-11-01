@@ -1,0 +1,87 @@
+name: Gradle release APK (Pro gates)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/755a173a-capod-pro
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gradle-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Tests + FOSS release APK
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: true
+
+      - name: Setup project and build environment
+        uses: ./.github/actions/common-setup
+
+      - name: Run unit tests for both flavors
+        run: ./gradlew testFossDebugUnitTest testGplayDebugUnitTest --stacktrace --no-daemon
+
+      # No production keystore is available in this repo, so sign with an ephemeral key.
+      # The build reads STORE_PATH / STORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD from the
+      # environment (see buildSrc ProjectExtensions.setupCredentials). The resulting APK is
+      # installable, but it is NOT signed with the official CAPod key and cannot update an
+      # existing official install.
+      - name: Generate ephemeral signing keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/release.jks" \
+            -alias capod \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass capod-pro-gates -keypass capod-pro-gates \
+            -dname "CN=CAPod Pro Gates (ephemeral), OU=CI, O=capod-pro, C=IL"
+          echo "STORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "STORE_PASSWORD=capod-pro-gates" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=capod" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=capod-pro-gates" >> "$GITHUB_ENV"
+
+      - name: Assemble FOSS release APK
+        run: ./gradlew assembleFossRelease --stacktrace --no-daemon
+
+      - name: Verify APK signature and summarize
+        run: |
+          APK=$(ls app/build/outputs/apk/foss/release/eu.darken.capod-*.apk | head -1)
+          echo "APK: $APK"
+          ls -la app/build/outputs/apk/foss/release/
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          SHA256=$(sha256sum "$APK" | awk '{print $1}')
+          SIZE=$(du -h "$APK" | awk '{print $1}')
+          {
+            echo "## Release APK"
+            echo "- File: \`$APK\`"
+            echo "- Size: $SIZE"
+            echo "- SHA-256: \`$SHA256\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Release APK::$(basename "$APK") | $SIZE | sha256=$SHA256"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: capod-foss-release-apk
+          path: app/build/outputs/apk/foss/release/eu.darken.capod-*.apk
+          if-no-files-found: error
+
+      # Artifact downloads aren't reachable from every environment, so also commit the APK
+      # to release-apk/ on this branch. GITHUB_TOKEN pushes do not retrigger workflows.
+      - name: Commit APK back to branch
+        run: |
+          mkdir -p release-apk
+          cp app/build/outputs/apk/foss/release/eu.darken.capod-*.apk release-apk/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release-apk/
+          git commit -m "ci: Publish FOSS release APK (Pro gates open) [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

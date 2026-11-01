@@ -346,7 +346,7 @@ private fun PressControlsScreenProPreview() = PreviewWrapper {
 @Composable
 private fun PressControlsScreenNonProPreview() = PreviewWrapper {
     PressControlsScreen(
-        state = previewPressControlsState(isPro = false),
+        state = previewPressControlsState(isPro = true),
         onNavigateUp = {},
     )
 }

@@ -79,7 +79,7 @@ private fun ControlsCardPreview() = PreviewWrapper {
 @Preview2
 @Composable
 private fun ControlsCardNonProPreview() = PreviewWrapper {
-    val state = previewFullState(isPro = false)
+    val state = previewFullState(isPro = true)
     val device = state.device!!
     ControlsCard(
         device = device,

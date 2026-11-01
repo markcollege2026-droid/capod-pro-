@@ -45,6 +45,7 @@ import eu.darken.capod.common.theming.ThemeColor
 import eu.darken.capod.common.theming.ThemeMode
 import eu.darken.capod.common.theming.ThemeState
 import eu.darken.capod.common.theming.ThemeStyle
+import eu.darken.capod.common.upgrade.Gates
 
 @Composable
 fun GeneralSettingsScreenHost(vm: GeneralSettingsViewModel = hiltViewModel()) {
@@ -117,7 +118,7 @@ fun GeneralSettingsScreen(
                 SettingsCategoryHeader(text = stringResource(R.string.settings_category_appearance_label))
             }
             item {
-                if (!state.isUpgradeLocked) {
+                if (Gates.THEME_SETTINGS || !state.isUpgradeLocked) {
                     SettingsListPreferenceItem(
                         icon = Icons.TwoTone.DarkMode,
                         title = stringResource(R.string.ui_theme_mode_label),
@@ -132,12 +133,12 @@ fun GeneralSettingsScreen(
                         title = stringResource(R.string.ui_theme_mode_label),
                         subtitle = stringResource(state.themeState.mode.labelRes),
                         onClick = onUpgrade,
-                        requiresUpgrade = true,
+                        requiresUpgrade = !Gates.THEME_SETTINGS,
                     )
                 }
             }
             item {
-                if (!state.isUpgradeLocked) {
+                if (Gates.THEME_SETTINGS || !state.isUpgradeLocked) {
                     SettingsListPreferenceItem(
                         icon = Icons.TwoTone.Contrast,
                         title = stringResource(R.string.ui_theme_style_label),
@@ -152,7 +153,7 @@ fun GeneralSettingsScreen(
                         title = stringResource(R.string.ui_theme_style_label),
                         subtitle = stringResource(state.themeState.style.labelRes),
                         onClick = onUpgrade,
-                        requiresUpgrade = true,
+                        requiresUpgrade = !Gates.THEME_SETTINGS,
                     )
                 }
             }
@@ -166,10 +167,10 @@ fun GeneralSettingsScreen(
                     },
                     icon = Icons.TwoTone.Palette,
                     onClick = {
-                        if (state.isUpgradeLocked) onUpgrade() else showColorDialog = true
+                        if (!Gates.THEME_SETTINGS && state.isUpgradeLocked) onUpgrade() else showColorDialog = true
                     },
                     enabled = !isMaterialYouActive,
-                    requiresUpgrade = state.isUpgradeLocked && !isMaterialYouActive,
+                    requiresUpgrade = !Gates.THEME_SETTINGS && state.isUpgradeLocked && !isMaterialYouActive,
                 )
             }
             item {
@@ -304,7 +305,7 @@ fun GeneralSettingsScreen(
 }
 
 private fun previewGeneralState(isPro: Boolean) = GeneralSettingsViewModel.State(
-    isUpgradeLocked = !isPro,
+    isUpgradeLocked = !Gates.THEME_SETTINGS && !isPro,
     showConnectedNotification = true,
     keepNotificationAfterDisconnect = false,
     showBatteryInStatusBar = false,
@@ -334,7 +335,7 @@ private fun GeneralSettingsScreenProPreview() = PreviewWrapper {
 @Composable
 private fun GeneralSettingsScreenNonProPreview() = PreviewWrapper {
     GeneralSettingsScreen(
-        state = previewGeneralState(isPro = false),
+        state = previewGeneralState(isPro = true),
         onNavigateUp = {},
         onShowConnectedNotificationChanged = {},
         onKeepNotificationAfterDisconnectChanged = {},

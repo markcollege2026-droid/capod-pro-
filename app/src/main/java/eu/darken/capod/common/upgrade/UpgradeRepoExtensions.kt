@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private val TAG = logTag("Upgrade", "Repo", "Extensions")
 
-suspend fun UpgradeRepo.isPro(): Boolean = upgradeInfo.first().isPro
+suspend fun UpgradeRepo.isPro(): Boolean = Gates.IS_PRO || upgradeInfo.first().isPro
 
 /**
  * Pro check for backend safety-net gates (e.g. a tool's task-submit boundary).
@@ -32,7 +32,10 @@ suspend fun UpgradeRepo.isPro(): Boolean = upgradeInfo.first().isPro
  *
  * The FOSS flavor reads from a synchronous cache, so the fast path resolves immediately there.
  */
-suspend fun UpgradeRepo.isProSettled(timeout: Duration = 5.seconds): Boolean = try {
+suspend fun UpgradeRepo.isProSettled(timeout: Duration = 5.seconds): Boolean = if (Gates.IS_PRO_SETTLED) {
+    // This build ships with the gate open: allow immediately, without the billing round-trip below.
+    true
+} else try {
     if (upgradeInfo.first().isPro) {
         true
     } else {
@@ -78,7 +81,11 @@ suspend fun UpgradeRepo.isProSettled(timeout: Duration = 5.seconds): Boolean = t
  * current state: the UI route is recoverable, and the backend [isProSettled] gate remains the
  * enforcement safety net.
  */
-suspend fun UpgradeRepo.isProForUi(timeout: Duration = 3.seconds): Boolean = try {
+suspend fun UpgradeRepo.isProForUi(timeout: Duration = 3.seconds): Boolean = if (Gates.IS_PRO_FOR_UI) {
+    // This build ships with the gate open: a billing handshake can never bounce a user to the
+    // upgrade screen.
+    true
+} else try {
     val current = upgradeInfo.first()
     when {
         current.isPro -> true

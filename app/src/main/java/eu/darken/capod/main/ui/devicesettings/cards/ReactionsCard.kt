@@ -37,6 +37,7 @@ import eu.darken.capod.common.settings.SettingsInfoBox
 import eu.darken.capod.common.settings.SettingsSection
 import eu.darken.capod.common.settings.SettingsSliderItem
 import eu.darken.capod.common.settings.SettingsSwitchItem
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.main.ui.devicesettings.dialogs.AutoConnectConditionDialog
 import eu.darken.capod.main.ui.devicesettings.dialogs.ConversationActionDialog
 import eu.darken.capod.main.ui.devicesettings.previewFullState
@@ -80,7 +81,7 @@ internal fun ReactionsCard(
                 subtitle = stringResource(R.string.settings_autoplay_description),
                 checked = reactions.autoPlay,
                 onCheckedChange = onAutoPlayChange,
-                requiresUpgrade = !isPro,
+                requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
             )
             if (reactions.autoPlay) {
                 SettingsSwitchItem(
@@ -89,7 +90,7 @@ internal fun ReactionsCard(
                     subtitle = stringResource(R.string.settings_start_music_on_wear_description),
                     checked = reactions.startMusicOnWear,
                     onCheckedChange = onStartMusicOnWearChange,
-                    requiresUpgrade = !isPro,
+                    requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
                 )
             }
             SettingsSwitchItem(
@@ -98,7 +99,7 @@ internal fun ReactionsCard(
                 subtitle = stringResource(R.string.settings_autopause_description),
                 checked = reactions.autoPause,
                 onCheckedChange = onAutoPauseChange,
-                requiresUpgrade = !isPro,
+                requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
             )
             if (features.hasDualPods) {
                 val onePodModeActive = reactions.onePodMode ||
@@ -157,7 +158,7 @@ internal fun ReactionsCard(
                         subtitle = stringResource(reactions.conversationAction.labelRes),
                         onClick = { showConversationActionDialog = true },
                         enabled = enabled,
-                        requiresUpgrade = !isPro,
+                        requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
                     )
                     if (reactions.conversationAction == ConversationAction.LOWER_VOLUME) {
                         var sliderValue by remember(reactions.conversationVolumeReduction) {
@@ -188,7 +189,7 @@ internal fun ReactionsCard(
                     checked = sleepDet.enabled,
                     onCheckedChange = onSleepDetectionChange,
                     enabled = enabled,
-                    requiresUpgrade = !isPro,
+                    requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
                 )
                 if (sleepDet.enabled) {
                     SettingsInfoBox(
@@ -234,7 +235,7 @@ internal fun ReactionsCard(
                 subtitle = stringResource(R.string.settings_popup_caseopen_description),
                 checked = reactions.showPopUpOnCaseOpen,
                 onCheckedChange = onShowPopUpOnCaseOpenChange,
-                requiresUpgrade = !isPro,
+                requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
             )
         }
         SettingsSwitchItem(
@@ -243,7 +244,7 @@ internal fun ReactionsCard(
             subtitle = stringResource(R.string.settings_popup_connected_description),
             checked = reactions.showPopUpOnConnection,
             onCheckedChange = onShowPopUpOnConnectionChange,
-            requiresUpgrade = !isPro,
+            requiresUpgrade = !Gates.DEVICE_SETTINGS && !isPro,
         )
         val anyPopupEnabled = reactions.showPopUpOnCaseOpen || reactions.showPopUpOnConnection
         if (anyPopupEnabled) {
@@ -301,7 +302,7 @@ private fun ReactionsCardPreview() = PreviewWrapper {
 @Preview2
 @Composable
 private fun ReactionsCardNonProPreview() = PreviewWrapper {
-    val state = previewFullState(isPro = false)
+    val state = previewFullState(isPro = true)
     val device = state.device!!
     ReactionsCard(
         device = device,

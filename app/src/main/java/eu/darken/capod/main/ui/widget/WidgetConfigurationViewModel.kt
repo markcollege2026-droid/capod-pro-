@@ -12,6 +12,7 @@ import eu.darken.capod.common.debug.logging.log
 import eu.darken.capod.common.debug.logging.logTag
 import eu.darken.capod.common.flow.combine
 import eu.darken.capod.common.uix.ViewModel2
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.common.upgrade.isProForUi
 import eu.darken.capod.profiles.core.DeviceProfile
@@ -93,7 +94,7 @@ class WidgetConfigurationViewModel @Inject constructor(
     data class State(
         val profiles: List<DeviceProfile> = emptyList(),
         val selectedProfile: ProfileId? = null,
-        val isPro: Boolean = false,
+        val isPro: Boolean = Gates.WIDGET_CONFIGURATION,
         val theme: WidgetTheme = WidgetTheme.DEFAULT,
         val activePreset: WidgetTheme.Preset? = WidgetTheme.Preset.MATERIAL_YOU,
         val isCustomMode: Boolean = false,
@@ -167,6 +168,8 @@ class WidgetConfigurationViewModel @Inject constructor(
         data object Invalid : ConfirmOutcome
     }
 
+    private suspend fun proUnlocked(): Boolean = Gates.WIDGET_CONFIGURATION || upgradeRepo.isProForUi()
+
     /**
      * Validity first, entitlement second: an invalid configuration must not send the user shopping.
      * The gate is [isProForUi] rather than the state's cached isPro, so a paying user tapping
@@ -182,7 +185,7 @@ class WidgetConfigurationViewModel @Inject constructor(
             log(TAG, INFO) { "decideConfirm(): configuration is not confirmable" }
             return ConfirmOutcome.Invalid
         }
-        return if (upgradeRepo.isProForUi()) {
+        return if (proUnlocked()) {
             ConfirmOutcome.Confirmed
         } else {
             log(TAG, INFO) { "decideConfirm(): upgrade required" }

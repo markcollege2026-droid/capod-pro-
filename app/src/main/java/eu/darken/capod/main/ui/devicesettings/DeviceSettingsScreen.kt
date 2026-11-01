@@ -644,7 +644,7 @@ private fun DeviceSettingsFullProPreview() = PreviewWrapper {
 @Composable
 private fun DeviceSettingsFullNonProPreview() = PreviewWrapper {
     DeviceSettingsScreen(
-        state = previewFullState(isPro = false),
+        state = previewFullState(isPro = true),
         onNavigateUp = {},
     )
 }

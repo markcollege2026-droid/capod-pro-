@@ -3,6 +3,7 @@ package testhelpers.compose
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import eu.darken.capod.common.debug.logging.Logging
+import eu.darken.capod.common.upgrade.Gates
 import io.mockk.unmockkAll
 import org.junit.AfterClass
 import org.junit.Rule
@@ -33,6 +34,9 @@ abstract class BaseComposeRobolectricTest {
     init {
         Logging.clearAll()
         Logging.install(JUnitLogger())
+        // Gates are JVM-global: BaseTest closes them for the legacy unit tests, so pin the
+        // shipped (open) default here to keep Compose tests independent of execution order.
+        Gates.setAll(true)
     }
 
     companion object {

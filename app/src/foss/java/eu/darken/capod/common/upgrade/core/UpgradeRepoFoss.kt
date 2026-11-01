@@ -7,6 +7,7 @@ import eu.darken.capod.common.debug.logging.asLog
 import eu.darken.capod.common.debug.logging.log
 import eu.darken.capod.common.debug.logging.logTag
 import eu.darken.capod.common.flow.setupCommonEventHandlers
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +48,8 @@ class UpgradeRepoFoss @Inject constructor(
             fossCache.upgrade.flow
                 .map { data ->
                     if (data == null) {
+                        // No sponsor record: the default applies, which the open
+                        // Gates.IS_PRO gate drives to Pro in this build.
                         Info()
                     } else {
                         Info(
@@ -130,7 +133,7 @@ class UpgradeRepoFoss @Inject constructor(
     }
 
     data class Info(
-        override val isPro: Boolean = false,
+        override val isPro: Boolean = Gates.IS_PRO,
         override val upgradedAt: Instant? = null,
         val upgradeReason: FossUpgrade.Reason? = null,
         override val error: Throwable? = null,

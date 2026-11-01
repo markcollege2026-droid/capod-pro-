@@ -49,11 +49,12 @@ The stack under `pods/core/apple/aap/` splits into `protocol/` (pure data) and `
 state machine). The glue in `monitor/core/aap/` wires it into the foreground service and persists
 learned settings and session keys across restarts.
 
-## FOSS is not "always pro"
+## Pro gates are open in this build
 
-`UpgradeRepo` has two flavor implementations. `UpgradeControlFoss` starts users at `isPro = false`
-and only persists the pro flag after `upgrade()` is called via the local sponsor flow. Do not assume
-the FOSS flavor bypasses pro gating.
+`UpgradeRepo` has two flavor implementations. Both now report `isPro = true` unconditionally via
+`Gates.IS_PRO`, and every downstream gate in `eu.darken.capod.common.upgrade.Gates` is `true`.
+All Pro features are unlocked without a GPlay purchase or FOSS sponsor record — do not assume the
+old free-tier gating still applies.
 
 ## Navigation is mid-migration
 

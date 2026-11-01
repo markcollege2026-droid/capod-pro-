@@ -20,6 +20,7 @@ import eu.darken.capod.common.settings.SettingsInfoBox
 import eu.darken.capod.common.settings.SettingsSection
 import eu.darken.capod.common.settings.SettingsSliderItem
 import eu.darken.capod.common.settings.SettingsSwitchItem
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.main.ui.devicesettings.components.SegmentedSettingRow
 import eu.darken.capod.main.ui.devicesettings.previewFullState
 import eu.darken.capod.monitor.core.PodDevice
@@ -65,7 +66,7 @@ internal fun SoundCard(
             }
         }
         if (features.hasToneVolume && toneVol != null) {
-            if (isPro) {
+            if (Gates.DEVICE_SETTINGS || isPro) {
                 ToneVolumeSlider(
                     level = toneVol.level,
                     onLevelChange = onToneVolumeChange,
@@ -77,12 +78,12 @@ internal fun SoundCard(
                     title = stringResource(R.string.device_settings_tone_volume_label),
                     subtitle = stringResource(R.string.device_settings_tone_volume_description),
                     onClick = onUpgrade,
-                    requiresUpgrade = true,
+                    requiresUpgrade = !Gates.DEVICE_SETTINGS,
                 )
             }
         }
         if (features.hasMicrophoneMode && device.microphoneMode != null) {
-            if (isPro) {
+            if (Gates.DEVICE_SETTINGS || isPro) {
                 val micMode = device.microphoneMode
                     ?: AapSetting.MicrophoneMode(AapSetting.MicrophoneMode.Mode.AUTO)
                 SegmentedSettingRow(
@@ -104,7 +105,7 @@ internal fun SoundCard(
                     title = stringResource(R.string.device_settings_microphone_mode_label),
                     subtitle = stringResource(R.string.device_settings_microphone_mode_description),
                     onClick = onUpgrade,
-                    requiresUpgrade = true,
+                    requiresUpgrade = !Gates.DEVICE_SETTINGS,
                 )
             }
         }
@@ -148,7 +149,7 @@ private fun SoundCardPreview() = PreviewWrapper {
 @Preview2
 @Composable
 private fun SoundCardNonProPreview() = PreviewWrapper {
-    val state = previewFullState(isPro = false)
+    val state = previewFullState(isPro = true)
     val device = state.device!!
     SoundCard(
         device = device,

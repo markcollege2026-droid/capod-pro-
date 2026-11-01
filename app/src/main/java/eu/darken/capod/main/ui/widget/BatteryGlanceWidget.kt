@@ -19,6 +19,7 @@ import eu.darken.capod.common.debug.logging.Logging.Priority.VERBOSE
 import eu.darken.capod.common.debug.logging.asLog
 import eu.darken.capod.common.debug.logging.log
 import eu.darken.capod.common.debug.logging.logTag
+import eu.darken.capod.common.upgrade.Gates
 import eu.darken.capod.common.upgrade.UpgradeRepo
 import eu.darken.capod.common.upgrade.isPro
 import eu.darken.capod.monitor.core.DeviceMonitor
@@ -87,11 +88,11 @@ class BatteryGlanceWidget : GlanceAppWidget() {
                         .onFailure { e -> log(TAG, ERROR) { "getWidgetConfig failed: ${e.asLog()}" } }
                         .getOrNull()
                 },
-                proFlow = remember { ep.upgradeRepo().upgradeInfo.map { it.isPro }.distinctUntilChanged() },
+                proFlow = remember { ep.upgradeRepo().upgradeInfo.map { Gates.HOME_WIDGETS || it.isPro }.distinctUntilChanged() },
                 initialPro = {
-                    runCatching { runBlocking { ep.upgradeRepo().isPro() } }
+                    runCatching { Gates.HOME_WIDGETS || runBlocking { ep.upgradeRepo().isPro() } }
                         .onFailure { e -> log(TAG, ERROR) { "isPro failed: ${e.asLog()}" } }
-                        .getOrDefault(false)
+                        .getOrDefault(Gates.HOME_WIDGETS)
                 },
                 labelFlow = { pid ->
                     ep.deviceProfilesRepo().profiles

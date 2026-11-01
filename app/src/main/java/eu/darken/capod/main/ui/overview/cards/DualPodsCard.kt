@@ -556,7 +556,7 @@ private fun DualPodsCardFullPreview() = PreviewWrapper {
         device = MockPodDataProvider.dualPodFullyLoaded(),
         showDebug = false,
         now = SystemTimeSource.now(),
-        isPro = false,
+        isPro = true,
         batteryEstimate = BatteryEstimate(
             left = BatteryEstimate.Pod(minutesRemaining = 135, fractionPerHour = 0.18f, source = BatteryEstimate.Source.LIVE),
             right = BatteryEstimate.Pod(minutesRemaining = 122, fractionPerHour = 0.20f, source = BatteryEstimate.Source.LIVE),
@@ -574,7 +574,7 @@ private fun DualPodsCardEstimateLearnedPreview() = PreviewWrapper {
         device = MockPodDataProvider.dualPodFullyLoaded(),
         showDebug = false,
         now = SystemTimeSource.now(),
-        isPro = false,
+        isPro = true,
         batteryEstimate = BatteryEstimate(
             left = BatteryEstimate.Pod(minutesRemaining = 92, fractionPerHour = 0.27f, source = BatteryEstimate.Source.LEARNED),
             right = BatteryEstimate.Pod(minutesRemaining = 100, fractionPerHour = 0.25f, source = BatteryEstimate.Source.LEARNED),
@@ -591,7 +591,7 @@ private fun DualPodsCardEstimateProvisionalPreview() = PreviewWrapper {
         device = MockPodDataProvider.dualPodFullyLoaded(),
         showDebug = false,
         now = SystemTimeSource.now(),
-        isPro = false,
+        isPro = true,
         batteryEstimate = BatteryEstimate(
             left = BatteryEstimate.Pod(minutesRemaining = 360, fractionPerHour = 0.167f, source = BatteryEstimate.Source.SPEC),
             right = BatteryEstimate.Pod(minutesRemaining = 360, fractionPerHour = 0.167f, source = BatteryEstimate.Source.SPEC),

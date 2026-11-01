@@ -1,0 +1,135 @@
+name: Gradle unit tests (Pro gates)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/755a173a-capod-pro
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: gradle-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Unit tests (FOSS + GPlay)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup project and build environment
+        uses: ./.github/actions/common-setup
+
+      # A commit message containing [annotate-only:<run-id>] reuses that run's artifact.
+      # This is a fast triage mode for environments that cannot download Actions logs.
+      - name: Determine run mode
+        id: mode
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          RUN_ID=$(printf '%s' "$COMMIT_MSG" | grep -oE '\[annotate-only:[0-9]+\]' | grep -oE '[0-9]+' | head -1 || true)
+          if [ -n "$RUN_ID" ]; then
+            echo "reuse=true" >> "$GITHUB_OUTPUT"
+            echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+            echo "Reusing artifact from run $RUN_ID"
+          else
+            echo "reuse=false" >> "$GITHUB_OUTPUT"
+            echo "Running the full unit test suites"
+          fi
+
+      - name: Run unit tests for both flavors
+        if: steps.mode.outputs.reuse != 'true'
+        id: tests
+        run: ./gradlew testFossDebugUnitTest testGplayDebugUnitTest --continue --stacktrace --no-daemon
+
+      - name: Reuse reports from an earlier run
+        if: steps.mode.outputs.reuse == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ steps.mode.outputs.run_id }}" -n unit-test-results -D previous-results
+          find previous-results -name '*.xml' | head -20
+
+      # The sandbox can't download Actions logs/artifacts, so surface failures as check-run
+      # annotations (readable through api.github.com) plus the job step summary.
+      - name: Annotate failing tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          patterns = [
+              'app/build/test-results/**/*.xml',
+              'previous-results/**/*.xml',
+          ]
+          failures = []
+          seen = set()
+          for pattern in patterns:
+              for path in sorted(glob.glob(pattern, recursive=True)):
+                  try:
+                      root = ET.parse(path).getroot()
+                  except Exception:
+                      continue
+                  suites = [root] if root.tag == 'testsuite' else root.findall('testsuite')
+                  for suite in suites:
+                      for case in suite.findall('testcase'):
+                          name = f"{suite.get('name', '')} | {case.get('name', '')}"
+                          for problem in list(case.findall('failure')) + list(case.findall('error')):
+                              message = (problem.get('message') or '').replace('\n', ' ').strip()
+                              entry = f"{name} -> {message[:250]}"
+                              key = (suite.get('name', ''), case.get('name', ''), message[:80])
+                              if key in seen:
+                                  continue
+                              seen.add(key)
+                              failures.append(entry)
+
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary:
+              with open(summary, 'a', encoding='utf-8') as fh:
+                  fh.write(f"## Failing tests ({len(failures)})\n\n")
+                  for line in failures:
+                      fh.write(f"- {line}\n")
+
+          def emit(title, body):
+              payload = body.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f"::error title={title}::{payload}")
+
+          if failures:
+              classes = sorted({line.split(' | ')[0] for line in failures})
+              emit('JUnit failing classes', f"FAILING CLASSES ({len(classes)}):\n" + "\n".join(classes))
+
+              lines = [f"{i + 1}. {line}" for i, line in enumerate(failures)]
+              chunks, current = [], ''
+              for line in lines:
+                  if current and len(current) + len(line) + 1 > 3600:
+                      chunks.append(current)
+                      current = line
+                  else:
+                      current = f"{current}\n{line}".strip()
+              if current:
+                  chunks.append(current)
+              for index, chunk in enumerate(chunks, 1):
+                  emit(
+                      f'JUnit failures {index}-{len(chunks)}',
+                      f"FAILING TESTS {index}/{len(chunks)} (total {len(failures)}):\n{chunk}",
+                  )
+          PY
+
+      - name: Upload JUnit + HTML reports
+        if: always() && steps.mode.outputs.reuse != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: unit-test-results
+          path: |
+            app/build/test-results/**/*.xml
+            app/build/reports/tests/**
+          if-no-files-found: ignore
